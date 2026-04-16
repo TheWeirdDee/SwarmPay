@@ -85,7 +85,11 @@ class InMemoryStore {
       if (a.agent.reputation !== b.agent.reputation) {
         return b.agent.reputation - a.agent.reputation;
       }
-      // 4. Quaternary: Submission Time (Ascending - earlier wins)
+      // 4. Quaternary: Estimated Time (Ascending - faster wins)
+      if (a.bid.estimatedTimeMs !== b.bid.estimatedTimeMs) {
+        return a.bid.estimatedTimeMs - b.bid.estimatedTimeMs;
+      }
+      // 5. Quinary: Submission Time (Ascending - earlier wins)
       return a.bid.submittedAt - b.bid.submittedAt;
     })[0];
   }

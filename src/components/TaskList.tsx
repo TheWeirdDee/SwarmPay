@@ -191,9 +191,6 @@ export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
     </motion.div>
   );
 };
-    </motion.div>
-  );
-};
 
 export const TaskList: React.FC<TaskListProps> = ({ tasks }) => {
   if (tasks.length === 0) {
