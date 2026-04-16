@@ -60,14 +60,34 @@ class InMemoryStore {
       const agent = this.agents.get(bid.agentId);
       if (!agent) return null;
       
-      const score = calculateBidScore(bid, agent);
-      return { bid, agent, score };
+      try {
+        const score = calculateBidScore(bid, agent);
+        return { bid, agent, score };
+      } catch (err) {
+        console.warn(`Skipping invalid bid ${bid.id}:`, err);
+        return null;
+      }
     }).filter((item): item is { bid: Bid, agent: Agent, score: number } => item !== null);
 
     if (rankedBids.length === 0) throw new Error('No valid agents found for bids');
 
-    // Sort by score descending
-    return rankedBids.sort((a, b) => b.score - a.score)[0];
+    // Sort with deterministic tie-breaking
+    return rankedBids.sort((a, b) => {
+      // 1. Primary: Score (Descending)
+      if (Math.abs(b.score - a.score) > 0.000001) {
+        return b.score - a.score;
+      }
+      // 2. Secondary: Price (Ascending - cheaper wins)
+      if (a.bid.price !== b.bid.price) {
+        return a.bid.price - b.bid.price;
+      }
+      // 3. Tertiary: Reputation (Descending - more trusted wins)
+      if (a.agent.reputation !== b.agent.reputation) {
+        return b.agent.reputation - a.agent.reputation;
+      }
+      // 4. Quaternary: Submission Time (Ascending - earlier wins)
+      return a.bid.submittedAt - b.bid.submittedAt;
+    })[0];
   }
 
   assignWinningBid(taskId: string): void {
@@ -75,12 +95,14 @@ class InMemoryStore {
     const task = this.getTask(taskId);
 
     if (task && task.status === 'bidding') {
+      // Atomic update of all selection-related fields
       this.updateTask(taskId, {
         winningBid: winner.bid.id,
+        assignedAgentId: winner.agent.id,
         status: 'assigned'
       });
     } else {
-      throw new Error('Task is not in bidding state or not found');
+      throw new Error(`Task ${taskId} is not in bidding state or not found`);
     }
   }
 }

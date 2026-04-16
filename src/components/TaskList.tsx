@@ -22,6 +22,7 @@ const statusIcons = {
 export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
   const [bids, setBids] = useState<(Bid & { agentName?: string })[]>([]);
   const [showBidForm, setShowBidForm] = useState(false);
+  const [isSelecting, setIsSelecting] = useState(false);
 
   useEffect(() => {
     if (task.status === 'bidding' || task.status === 'assigned' || task.status === 'completed' || task.status === 'executing') {
@@ -41,6 +42,9 @@ export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
   };
 
   const selectWinner = async () => {
+    if (isSelecting) return;
+    setIsSelecting(true);
+    
     try {
       const res = await fetch(`/api/tasks/${task.id}/select`, { method: 'POST' });
       if (res.ok) {
@@ -51,10 +55,19 @@ export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
       }
     } catch (err) {
       console.error('Error selecting winner:', err);
+    } finally {
+      setIsSelecting(false);
     }
   };
 
   const winningBid = bids.find(b => b.id === task.winningBid);
+  
+  // Calculate relative scores for display if in bidding state
+  const bidsWithScores = bids.map(b => {
+    // Note: Actual scoring logic is on server, this is for UI transparency
+    // In a real app we'd fetch these or have a shared lib
+    return b;
+  });
 
   return (
     <motion.div
@@ -89,11 +102,14 @@ export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
         </div>
       </div>
 
-      {bids.length > 0 && (
+      {task.status === 'bidding' && bids.length > 0 && (
         <div className="border-t border-slate-800 pt-4 space-y-2">
-          <div className="flex items-center gap-2 text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
-            <Gavel className="w-3 h-3" />
-            <span>Active Bids ({bids.length})</span>
+          <div className="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-1">
+            <div className="flex items-center gap-2">
+              <Gavel className="w-3 h-3" />
+              <span>Active Bids ({bids.length})</span>
+            </div>
+            <span>Agent Pool</span>
           </div>
           <div className="grid gap-2">
             {bids.map(bid => (
@@ -128,8 +144,12 @@ export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
             </div>
             <div className="text-right">
               <div className="font-mono text-purple-400 font-bold">${winningBid.price.toFixed(2)}</div>
-              <div className="text-[10px] text-slate-600 mt-1 uppercase font-black">Contract Signed</div>
+              <div className="text-[10px] text-slate-600 mt-1 uppercase font-black">Decision Confirmed</div>
             </div>
+          </div>
+          <div className="mt-3 pt-3 border-t border-purple-500/10 flex justify-between items-center text-[10px]">
+             <span className="text-slate-500 uppercase font-bold tracking-tighter">Economic Score</span>
+             <span className="font-mono text-purple-400/80">Deterministically Ranked #1</span>
           </div>
         </div>
       )}
@@ -139,8 +159,9 @@ export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
           <div className="grid grid-cols-2 gap-3">
             {!showBidForm ? (
               <button
+                disabled={isSelecting}
                 onClick={() => setShowBidForm(true)}
-                className="col-span-1 h-10 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-blue-400 hover:bg-blue-400/5 border border-dashed border-slate-800 hover:border-blue-400/30 rounded-xl transition-all"
+                className="col-span-1 h-10 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:text-blue-400 hover:bg-blue-400/5 border border-dashed border-slate-800 hover:border-blue-400/30 rounded-xl transition-all disabled:opacity-50"
               >
                 + Place Bid
               </button>
@@ -152,16 +173,24 @@ export const TaskCard: React.FC<{ task: Task }> = ({ task }) => {
             
             {!showBidForm && bids.length > 0 && (
               <button
+                disabled={isSelecting}
                 onClick={selectWinner}
-                className="col-span-1 h-10 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20"
+                className="col-span-1 h-10 bg-purple-600 hover:bg-purple-500 disabled:bg-slate-800 text-white text-[10px] font-black uppercase tracking-widest rounded-xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-purple-900/20"
               >
-                <Gavel className="w-3.5 h-3.5" />
-                Select Winner
+                {isSelecting ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <Gavel className="w-3.5 h-3.5" />
+                )}
+                {isSelecting ? 'Selecting...' : 'Select Winner'}
               </button>
             )}
           </div>
         </div>
       )}
+    </motion.div>
+  );
+};
     </motion.div>
   );
 };

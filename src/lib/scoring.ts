@@ -12,13 +12,23 @@ export function calculateBidScore(bid: Bid, agent: Agent): number {
     throw new Error('Agent is required for scoring');
   }
 
-  // Guards for zero or negative values to prevent division by zero or nonsensical scores
-  const price = Math.max(bid.price, 0.001); // Minimum $0.001 to prevent infinity
-  const reputation = Math.max(agent.reputation, 1); // Minimum 1 reputation
-  const timeMs = Math.max(bid.estimatedTimeMs, 1000); // Minimum 1 second (expressed in ms)
+  // Explicit Guards for zero or negative values
+  if (bid.price <= 0) {
+    throw new Error(`Invalid bid price: ${bid.price}. Price must be positive.`);
+  }
+  if (agent.reputation <= 0) {
+    // We treat reputation <= 0 as a minimum score floor to prevent division/multiplication issues
+    // but in a strict economic context, we normalize to a baseline.
+    return 0; 
+  }
+  if (bid.estimatedTimeMs <= 0) {
+    throw new Error(`Invalid estimated time: ${bid.estimatedTimeMs}. Time must be positive.`);
+  }
 
-  // Convert time to seconds for more readable scoring
-  const timeSec = timeMs / 1000;
+  // Normalization for scoring stability
+  const price = bid.price;
+  const reputation = agent.reputation;
+  const timeSec = bid.estimatedTimeMs / 1000;
 
   // score = (1/price) * reputation * (1/timeInSeconds)
   const score = (1 / price) * reputation * (1 / timeSec);

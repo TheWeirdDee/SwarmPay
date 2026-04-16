@@ -13,8 +13,15 @@ export async function POST(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
 
+    // Race condition / double-selection prevention
     if (task.status !== 'bidding') {
-      return NextResponse.json({ error: 'Task is not in bidding state' }, { status: 400 });
+      return NextResponse.json({ 
+        error: `Cannot select winner: Task is in '${task.status}' state. Expected 'bidding'.` 
+      }, { status: 400 });
+    }
+
+    if (task.winningBid) {
+      return NextResponse.json({ error: 'Task already has a winning bid assigned' }, { status: 400 });
     }
 
     const bids = store.getBidsForTask(id);
@@ -26,16 +33,17 @@ export async function POST(
       store.assignWinningBid(id);
       
       const updatedTask = store.getTask(id);
-      const winner = store.selectWinningBid(id); // Re-calculate or fetch to return info
+      const winner = store.selectWinningBid(id);
 
       return NextResponse.json({
         message: 'Winner selected successfully',
         task: updatedTask,
         winner: {
           agent: winner.agent.name,
+          agentId: winner.agent.id,
           bidId: winner.bid.id,
           price: winner.bid.price,
-          score: winner.score
+          score: winner.score.toFixed(4)
         }
       });
     } catch (err: any) {

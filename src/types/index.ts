@@ -35,6 +35,7 @@ export interface Task {
   budget: number;                // 0.30 (USDC)
   status: TaskStatus;           // pending | bidding | executing | completed | failed
   winningBid: string | null;    // Bid ID
+  assignedAgentId: string | null; // Agent ID
   subTasks: SubTask[];
   result: string | null;
   costBreakdown: CostBreakdown;
