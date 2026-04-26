@@ -125,8 +125,7 @@ const X402_DOMAIN = {
   verifyingContract: '0x0000000000000000000000000000000000000000' as const,
 }
 
-const X402_TYPE
- fix/stateless-settlement
+const X402_TYPES = {
   // Circle's signTypedData API requires EIP712Domain to be declared
   // explicitly in types — ethers.js infers it but Circle does not.
   EIP712Domain: [
@@ -134,11 +133,6 @@ const X402_TYPE
     { name: 'version',           type: 'string'  },
     { name: 'chainId',           type: 'uint256' },
     { name: 'verifyingContract', type: 'address' },
-=======
-  EIP712Domain: [
-    { name: 'name',    type: 'string' },
-    { name: 'version', type: 'string' },
- main
   ],
   PaymentAuthorization: [
     { name: 'paymentIntentId', type: 'bytes32' },

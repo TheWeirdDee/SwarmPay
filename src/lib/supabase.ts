@@ -232,7 +232,7 @@ export async function saveSubTaskToSupabase(st: any) {
   try {
     const { error } = await supabaseAdmin.from('subtasks').upsert({
       id: st.id,
-      task_id: taskId,
+      task_id: st.taskId,
       type: st.type,
       title: st.title,
       description: st.description,
