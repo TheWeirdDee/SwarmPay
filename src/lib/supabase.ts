@@ -230,9 +230,17 @@ export async function saveSubTaskToSupabase(st: any) {
   if (!st || !supabaseAdmin) return;
  
   try {
+    // SubTask types use `parentTaskId` (see src/types/index.ts:SubTask).
+    // Fall back to `taskId` for any legacy callers.
+    const taskId = st.parentTaskId ?? st.taskId;
+    if (!taskId) {
+      console.error('[SUPABASE] subtask save aborted: missing parentTaskId/taskId on', st.id);
+      return;
+    }
+
     const { error } = await supabaseAdmin.from('subtasks').upsert({
       id: st.id,
-      task_id: st.taskId,
+      task_id: taskId,
       type: st.type,
       title: st.title,
       description: st.description,
