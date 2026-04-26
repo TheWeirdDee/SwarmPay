@@ -16,7 +16,8 @@ export const supabaseAdmin: SupabaseClient | null = (supabaseUrl && supabaseServ
   ? createClient(supabaseUrl, supabaseServiceKey, { auth: { persistSession: false } })
   : supabase
 
-// Task persistence helpers
+// Task persistence helpers — writes go through supabaseAdmin so RLS doesn't
+// reject server-side mutations. Reads stay on the anon client below.
 export async function saveTaskToSupabase(task: any) {
   if (!task || !supabaseAdmin) return;
   try {
@@ -227,10 +228,11 @@ export async function fetchSubtasksFromSupabase(taskId: string): Promise<any[]> 
 
 export async function saveSubTaskToSupabase(st: any) {
   if (!st || !supabaseAdmin) return;
+ 
   try {
     const { error } = await supabaseAdmin.from('subtasks').upsert({
       id: st.id,
-      task_id: st.taskId,
+      task_id: taskId,
       type: st.type,
       title: st.title,
       description: st.description,
@@ -242,7 +244,7 @@ export async function saveSubTaskToSupabase(st: any) {
       execution_valid: st.status === 'completed',
       created_at: st.createdAt ? new Date(st.createdAt).toISOString() : new Date().toISOString(),
       completed_at: st.completedAt ? new Date(st.completedAt).toISOString() : null
-    });
+    }, { onConflict: 'id' });
     if (error) console.error('[SUPABASE] subtask error:', error.message);
   } catch (e) {}
 }
